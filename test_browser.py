@@ -1,6 +1,6 @@
 from services.browser_service import BrowserService
 
-results = BrowserService.search_duckduckgo(
+results = BrowserService.search_google(
     "Python AI Engineer jobs in Mumbai"
 )
 

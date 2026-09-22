@@ -1,7 +1,7 @@
 from services.crawler_service import CrawlerService
 
-text = CrawlerService.get_page_text(
-    "https://www.naukri.com/ai-engineer-jobs-in-mumbai"
-)
+url = "https://in.indeed.com/q-python-ai-l-mumbai,-maharashtra-jobs.html"
+
+text = CrawlerService.get_page_text(url)
 
 print(text[:3000])

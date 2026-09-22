@@ -1,21 +1,22 @@
-from playwright.sync_api import sync_playwright
-
-
 class CrawlerService:
 
     @staticmethod
-    def get_page_text(url: str):
+    def get_page_text(page, url: str):
+        try:
+            page.goto(
+                url,
+                wait_until="domcontentloaded",
+                timeout=12000
+            )
+            page.wait_for_timeout(800)
+            return page.locator("body").inner_text()
+        except Exception as e:
+            print(f"[CrawlerService] Page navigation notice ({url[:60]}...): {e}")
+            return ""
 
-        with sync_playwright() as p:
-
-            browser = p.chromium.launch(headless=False)
-
-            page = browser.new_page()
-
-            page.goto(url, wait_until="networkidle")
-
-            text = page.locator("body").inner_text()
-
-            browser.close()
-
-            return text
+    @staticmethod
+    def current_url(page) -> str:
+        try:
+            return page.url
+        except Exception:
+            return ""

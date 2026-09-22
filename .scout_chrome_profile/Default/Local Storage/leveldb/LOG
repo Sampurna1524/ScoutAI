@@ -1,0 +1,14 @@
+2026/09/23-01:26:30.930 3a04 Reusing MANIFEST C:\Users\HP\Desktop\ScoutAI\backend\.scout_chrome_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/23-01:26:30.953 3a04 Recovering log #8
+2026/09/23-01:26:30.964 3a04 Reusing old log C:\Users\HP\Desktop\ScoutAI\backend\.scout_chrome_profile\Default\Local Storage\leveldb/000008.log 
+2026/09/23-01:28:40.038 2958 Level-0 table #12: started
+2026/09/23-01:28:40.055 2958 Level-0 table #12: 31833 bytes OK
+2026/09/23-01:28:40.060 2958 Delete type=0 #8
+2026/09/23-01:28:40.061 3a04 Compacting 4@0 + 0@1 files
+2026/09/23-01:28:40.068 3a04 Generated table #13@0: 154 keys, 25681 bytes
+2026/09/23-01:28:40.068 3a04 Compacted 4@0 + 0@1 files => 25681 bytes
+2026/09/23-01:28:40.069 3a04 compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/09/23-01:28:40.070 3a04 Delete type=2 #3
+2026/09/23-01:28:40.070 3a04 Delete type=2 #7
+2026/09/23-01:28:40.070 3a04 Delete type=2 #9
+2026/09/23-01:28:40.070 3a04 Delete type=2 #12
