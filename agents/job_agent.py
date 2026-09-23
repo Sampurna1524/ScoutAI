@@ -115,11 +115,28 @@ class JobAgent:
                     session.wake.wait(timeout=0.5)
                     session.wake.clear()
 
-                JobAgent._drain_user_actions(session)
-
                 with session.lock:
                     session.status = "completed"
                 session.append_event("search_completed", "Results are ready")
+
+                # Send top 5 matches via email if configured
+                try:
+                    from services.notification_service import NotificationService
+                    recipient = (session.filters.get("notification_email") if session.filters else None) or NotificationService.get_default_recipient()
+                    send_email_flag = session.filters.get("send_email", True) if session.filters else True
+                    if send_email_flag and recipient and NotificationService.is_configured() and session.jobs:
+                        sorted_jobs = sorted(session.jobs, key=lambda j: (j.match_score is not None, j.match_score or 0), reverse=True)
+                        sent = NotificationService.send_top_matches(
+                            recipient=recipient,
+                            query=session.query,
+                            jobs=sorted_jobs,
+                            candidate_profile=session.candidate_profile,
+                            total_discovered=len(session.jobs),
+                        )
+                        if sent:
+                            session.append_event("email_sent", f"Top 5 matching jobs emailed to {recipient}", {"recipient": recipient})
+                except Exception as ne:
+                    print(f"[JobAgent] Notification dispatch notice: {ne}")
 
                 context.close()
                 session.browser = None

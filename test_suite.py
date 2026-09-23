@@ -80,5 +80,10 @@ class TestScoutFeatures(unittest.TestCase):
         self.assertIn("FastAPI", scored.matched_skills)
         self.assertIn("PyTorch", scored.matched_skills)
 
+    def test_notification_service_configuration(self):
+        from services.notification_service import NotificationService
+        self.assertTrue(NotificationService.is_configured())
+        self.assertEqual(NotificationService.get_default_recipient(), "ai.scoutieee@gmail.com")
+
 if __name__ == "__main__":
     unittest.main()

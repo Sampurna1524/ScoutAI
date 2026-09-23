@@ -1,9 +1,9 @@
-2026/09/23-01:19:23.698 2f5c Reusing MANIFEST C:\Users\HP\Desktop\ScoutAI\backend\.scout_chrome_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/09/23-01:19:23.704 2f5c Recovering log #4
-2026/09/23-01:19:23.712 2f5c Reusing old log C:\Users\HP\Desktop\ScoutAI\backend\.scout_chrome_profile\Default\Local Storage\leveldb/000004.log 
-2026/09/23-01:21:43.701 39d8 Level-0 table #7: started
-2026/09/23-01:21:43.723 39d8 Level-0 table #7: 49462 bytes OK
-2026/09/23-01:21:43.725 39d8 Delete type=0 #4
-2026/09/23-01:22:18.461 39d8 Level-0 table #9: started
-2026/09/23-01:22:18.476 39d8 Level-0 table #9: 24345 bytes OK
-2026/09/23-01:22:18.479 39d8 Delete type=0 #6
+2026/09/23-19:09:08.205 286c Reusing MANIFEST C:\Users\HP\Desktop\ScoutAI\backend\.scout_chrome_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/23-19:09:08.208 286c Recovering log #11
+2026/09/23-19:09:08.228 286c Reusing old log C:\Users\HP\Desktop\ScoutAI\backend\.scout_chrome_profile\Default\Local Storage\leveldb/000011.log 
+2026/09/23-19:11:37.017 10cc Level-0 table #16: started
+2026/09/23-19:11:37.024 10cc Level-0 table #16: 17113 bytes OK
+2026/09/23-19:11:37.029 10cc Delete type=0 #11
+2026/09/23-19:12:06.622 10cc Level-0 table #18: started
+2026/09/23-19:12:06.629 10cc Level-0 table #18: 20735 bytes OK
+2026/09/23-19:12:06.634 10cc Delete type=0 #15

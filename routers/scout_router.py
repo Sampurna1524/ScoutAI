@@ -22,7 +22,13 @@ class StartSearchBody(BaseModel):
     skills: Optional[str] = ""
     salary_min: Optional[str] = ""
     posted_within: Optional[str] = ""  # e.g. "24h", "3d", "week", "month"
+    notification_email: Optional[str] = None
+    send_email: Optional[bool] = True
     candidate_profile: Optional[Dict[str, Any]] = None
+
+
+class TestEmailBody(BaseModel):
+    email: str
 
 
 class ProfileTextBody(BaseModel):
@@ -166,3 +172,32 @@ def update_task(session_id: str, task_id: str, body: TaskActionBody):
         raise HTTPException(status_code=409, detail=str(e))
 
     return session.snapshot()
+
+
+@router.post("/test-email")
+def test_email(body: TestEmailBody):
+    from services.notification_service import NotificationService
+    from models.job import Job
+
+    sample_job = Job(
+        title="AI/ML Engineer (Test Notification)",
+        company="ScoutAI Demo Corp",
+        location="Remote",
+        experience_years=0,
+        match_score=95,
+        match_summary="Sample match summary for email verification.",
+        matched_skills=["Python", "FastAPI", "PyTorch"],
+        missing_skills=["Kubernetes"],
+        apply_url="https://github.com",
+        description="This is a test notification confirming your email dispatch is working perfectly."
+    )
+
+    success = NotificationService.send_top_matches(
+        recipient=body.email.strip(),
+        query="AI/ML Developer (Test)",
+        jobs=[sample_job],
+        total_discovered=1,
+    )
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to send test email. Please check SMTP credentials.")
+    return {"status": "success", "message": f"Test email sent to {body.email}"}
