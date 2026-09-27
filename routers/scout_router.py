@@ -13,6 +13,7 @@ class StartSearchBody(BaseModel):
     query: Optional[str] = ""
     role: Optional[str] = ""
     company: Optional[str] = ""
+    company_url: Optional[str] = ""
     experience_years: Optional[float] = None
     experience_months: Optional[int] = None
     experience_level: Optional[str] = ""
@@ -24,7 +25,15 @@ class StartSearchBody(BaseModel):
     posted_within: Optional[str] = ""  # e.g. "24h", "3d", "week", "month"
     notification_email: Optional[str] = None
     send_email: Optional[bool] = True
+    auto_apply_mode: Optional[str] = "off"  # "off", "review", "auto"
+    auto_apply_top_n: Optional[int] = 5
+    min_match_score: Optional[int] = 70
     candidate_profile: Optional[Dict[str, Any]] = None
+
+
+class SingleJobApplyBody(BaseModel):
+    job_url: str
+    mode: Optional[str] = "review"  # "review" or "auto"
 
 
 class TestEmailBody(BaseModel):
@@ -51,9 +60,15 @@ def build_search_query(body: StartSearchBody) -> str:
     else:
         parts.append("job openings")
 
-    # 2. Target Company
+    # 2. Target Company / Company URL
     if body.company and body.company.strip():
         parts.append(body.company.strip())
+    elif body.company_url and body.company_url.strip():
+        from services.company_career_service import CompanyCareerService
+        info = CompanyCareerService.extract_company_info(body.company_url)
+        c_name = info.get("company_name", "")
+        if c_name:
+            parts.append(c_name)
 
     # 3. Experience requirements
     if body.experience_years is not None:
@@ -201,3 +216,16 @@ def test_email(body: TestEmailBody):
     if not success:
         raise HTTPException(status_code=500, detail="Failed to send test email. Please check SMTP credentials.")
     return {"status": "success", "message": f"Test email sent to {body.email}"}
+
+
+@router.post("/{session_id}/apply-job")
+def apply_job_endpoint(session_id: str, body: SingleJobApplyBody):
+    session = session_store.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    job = JobAgent.apply_to_single_job(session_id, body.job_url, mode=body.mode or "review")
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found in session")
+
+    return {"status": "started", "job": job.model_dump(), "mode": body.mode}

@@ -27,4 +27,10 @@ class Job(BaseModel):
 
     source: str = ""
     status: str = ""
-    error: str = ""
+    error: str = ""
+
+    # Auto-application tracking fields
+    apply_type: Optional[str] = ""  # "easy_apply", "ats", "external"
+    application_status: Optional[str] = "unapplied"  # "unapplied", "applying", "review_ready", "applied", "failed"
+    applied_at: Optional[str] = ""
+    application_notes: Optional[str] = ""

@@ -11,11 +11,20 @@ from services.llm.llm_service import LLMService
 class CandidateProfile(BaseModel):
     name: str = ""
     headline: str = ""
+    email: Optional[str] = ""
+    phone: Optional[str] = ""
+    linkedin_url: Optional[str] = ""
+    github_url: Optional[str] = ""
+    portfolio_url: Optional[str] = ""
     experience_years: Optional[float] = 0.0
     experience_months: Optional[int] = 0
     skills: List[str] = Field(default_factory=list)
     target_roles: List[str] = Field(default_factory=list)
     location_preference: str = ""
+    work_authorization: Optional[str] = "Yes"
+    requires_sponsorship: Optional[str] = "No"
+    notice_period_days: Optional[int] = 0
+    resume_file_path: Optional[str] = ""
     summary: str = ""
 
 
@@ -28,6 +37,11 @@ The JSON MUST contain exactly these fields:
 {{
     "name": "",
     "headline": "",
+    "email": "",
+    "phone": "",
+    "linkedin_url": "",
+    "github_url": "",
+    "portfolio_url": "",
     "experience_years": null,
     "experience_months": null,
     "skills": [],
@@ -40,6 +54,10 @@ Rules:
 - Return ONLY valid JSON without markdown wrapping or explanations.
 - "name": Candidate's full name.
 - "headline": Candidate's current or primary role title.
+- "email": Candidate's email address if found.
+- "phone": Candidate's phone number if found.
+- "linkedin_url": LinkedIn profile URL if found.
+- "github_url": GitHub profile URL if found.
 - "experience_years": Total years of work experience as a number (e.g., 3.5, 2, 0).
 - "experience_months": Additional months if specified (0 to 11).
 - "skills": Array of key technical skills, languages, tools, frameworks (e.g., ["Python", "PyTorch", "FastAPI", "Docker"]).
@@ -122,6 +140,21 @@ class ProfileService:
             profile.name = lines[0][:40]
             if len(lines) > 1:
                 profile.headline = lines[1][:60]
+
+        # Extract email
+        email_match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", text)
+        if email_match:
+            profile.email = email_match.group(0)
+
+        # Extract phone
+        phone_match = re.search(r"(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}", text)
+        if phone_match:
+            profile.phone = phone_match.group(0)
+
+        # Extract LinkedIn URL
+        li_match = re.search(r"https?://(?:www\.)?linkedin\.com/in/[\w-]+", text, re.I)
+        if li_match:
+            profile.linkedin_url = li_match.group(0)
 
         # Extract years of experience
         exp_match = re.search(r"(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs)", text, re.IGNORECASE)

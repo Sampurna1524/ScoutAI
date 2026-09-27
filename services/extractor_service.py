@@ -52,6 +52,81 @@ class ExtractorService:
         return job
 
     @staticmethod
+    def is_valid_job_posting(job: Job, url: str, page_text: str = "") -> bool:
+        """
+        Validates that an extracted item is an actual job listing and not a corporate article,
+        newsroom post, or marketing page.
+        """
+        if not job or not job.title:
+            return False
+
+        title_lower = job.title.lower().strip()
+        url_lower = url.lower().strip()
+
+        # Reject domain names as titles
+        if title_lower.startswith("www.") or title_lower.endswith(".com") or title_lower.endswith(".org") or title_lower.endswith(".net") or title_lower.endswith(".in"):
+            return False
+
+        # Reject generic corporate pages
+        disallowed_prefixes = (
+            "who we are",
+            "about us",
+            "our company",
+            "newsroom",
+            "press release",
+            "investor relations",
+            "corporate governance",
+            "privacy policy",
+            "terms of service",
+            "contact us",
+            "discover ",
+            "cookie policy",
+            "legal notice",
+            "site map",
+            "how we hire",
+            "join our talent community",
+            "workplace accommodation",
+            "a new supercomputer",
+        )
+        if any(title_lower.startswith(dp) or title_lower == dp for dp in disallowed_prefixes):
+            return False
+
+        # Check for career / job URL indicators
+        has_job_url = any(k in url_lower for k in (
+            "/job/", "/jobs/", "/career", "/position", "/opening", "/apply",
+            "greenhouse.io", "lever.co", "ashbyhq.com", "myworkdayjobs.com",
+            "smartrecruiters.com", "workable.com", "bamboohr.com", "linkedin.com/jobs",
+            "indeed.com", "naukri.com", "foundit.in", "glassdoor.com", "eightfold.ai"
+        ))
+
+        # Check for job title indicators
+        job_title_keywords = (
+            "engineer", "developer", "scientist", "analyst", "manager", "specialist",
+            "lead", "architect", "intern", "advisor", "director", "associate",
+            "consultant", "administrator", "representative", "coordinator", "officer",
+            "fellow", "programmer", "technician", "designer", "researcher", "strategist",
+            "executive", "head of", "vp", "trainee", "expert", "specialist", "opportunity",
+            "role", "opening", "internship", "technologist", "operator"
+        )
+        has_job_title = any(kw in title_lower for kw in job_title_keywords)
+
+        # Check for job body markers
+        text_lower = page_text.lower()
+        has_job_text = any(m in text_lower for m in (
+            "responsibilities", "qualifications", "requirements", "job description",
+            "apply now", "submit application", "job id", "req id", "r-", "years of experience",
+            "equal opportunity employer", "skills required", "about the role", "what you will do"
+        ))
+
+        # If it has a job URL and either a job title or job text, or strong job indicators
+        if has_job_url:
+            return True
+        if has_job_title and has_job_text:
+            return True
+
+        return False
+
+    @staticmethod
     def _heuristic_extract(page_text: str, url: str, fallback_title: str) -> Job:
         # Clean title
         title = fallback_title.strip()

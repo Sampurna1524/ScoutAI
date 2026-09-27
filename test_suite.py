@@ -85,5 +85,70 @@ class TestScoutFeatures(unittest.TestCase):
         self.assertTrue(NotificationService.is_configured())
         self.assertEqual(NotificationService.get_default_recipient(), "ai.scoutieee@gmail.com")
 
+    def test_auto_apply_profile_contacts(self):
+        sample_resume = """
+        John Doe
+        Senior AI Engineer
+        Email: john.doe.ai@gmail.com
+        Phone: +1 415-555-0199
+        LinkedIn: https://linkedin.com/in/johndoe-ai
+        Skills: Python, PyTorch, LangChain, FastAPI
+        Experience: 4 years
+        """
+        profile = ProfileService._fallback_heuristic_parse(sample_resume)
+        self.assertEqual(profile.email, "john.doe.ai@gmail.com")
+        self.assertTrue("415-555-0199" in profile.phone or "4155550199" in profile.phone)
+        self.assertIn("linkedin.com/in/johndoe-ai", profile.linkedin_url)
+        self.assertIn("Python", profile.skills)
+
+    def test_auto_apply_job_model_fields(self):
+        job = Job(
+            title="Software Engineer",
+            company="OpenAI",
+            apply_url="https://jobs.lever.co/openai/123",
+            apply_type="lever",
+            application_status="unapplied"
+        )
+        self.assertEqual(job.apply_type, "lever")
+        self.assertEqual(job.application_status, "unapplied")
+        job.application_status = "review_ready"
+        self.assertEqual(job.application_status, "review_ready")
+
+    def test_notification_hunt_results_modes(self):
+        from unittest.mock import patch
+        from services.notification_service import NotificationService
+
+        jobs = [
+            Job(title="AI Engineer", company="Co1", apply_url="https://co1.com/job1", match_score=95, application_status="applied"),
+            Job(title="ML Engineer", company="Co2", apply_url="https://co2.com/job2", match_score=90, application_status="review_ready"),
+            Job(title="Python Dev", company="Co3", apply_url="https://co3.com/job3", match_score=85, application_status="unapplied"),
+            Job(title="Data Scientist", company="Co4", apply_url="https://co4.com/job4", match_score=80, application_status="unapplied"),
+            Job(title="Backend Eng", company="Co5", apply_url="https://co5.com/job5", match_score=75, application_status="unapplied"),
+            Job(title="Full Stack", company="Co6", apply_url="https://co6.com/job6", match_score=70, application_status="unapplied"),
+        ]
+
+        with patch.object(NotificationService, "send_email", return_value=True) as mock_send:
+            # 1. Normal mode (auto_apply_mode = "off") -> sends Top 5 Matches
+            res1 = NotificationService.send_hunt_results(
+                recipient="test@example.com",
+                query="AI Engineer",
+                jobs=jobs,
+                auto_apply_mode="off"
+            )
+            self.assertTrue(res1)
+            subject1 = mock_send.call_args[0][1]
+            self.assertIn("Top 5 Job Matches", subject1)
+
+            # 2. Auto-Apply mode ("review" or "auto") with applied jobs -> sends Auto-Apply Report
+            res2 = NotificationService.send_hunt_results(
+                recipient="test@example.com",
+                query="AI Engineer",
+                jobs=jobs,
+                auto_apply_mode="review"
+            )
+            self.assertTrue(res2)
+            subject2 = mock_send.call_args[0][1]
+            self.assertIn("Application Report", subject2)
+
 if __name__ == "__main__":
     unittest.main()

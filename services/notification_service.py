@@ -60,28 +60,46 @@ class NotificationService:
             return False
 
     @staticmethod
-    def send_top_matches(
+    def send_hunt_results(
         recipient: str,
         query: str,
         jobs: List[Job],
         candidate_profile: Optional[Dict[str, Any]] = None,
         total_discovered: int = 0,
+        auto_apply_mode: str = "off",
     ) -> bool:
         if not jobs:
             return False
-
-        # Pick top 5 jobs
-        top_5 = jobs[:5]
 
         # Extract Candidate Name if available
         cand_name = (candidate_profile.get("name") or "Candidate") if candidate_profile else "Job Hunter"
         cand_headline = (candidate_profile.get("headline") or "") if candidate_profile else ""
 
-        subject = f"⚡ ScoutAI Top 5 Job Matches: {query}"
+        # Identify jobs that were auto-applied / processed
+        applied_jobs = [j for j in jobs if j.application_status in ("applied", "review_ready", "applying", "failed")]
+        is_apply_mode = auto_apply_mode in ("review", "auto") and bool(applied_jobs)
 
-        # Generate HTML content
+        if is_apply_mode:
+            applied_count = sum(1 for j in applied_jobs if j.application_status in ("applied", "review_ready"))
+            subject = f"⚡ ScoutAI Application Report: {applied_count} Jobs Applied / Prepared ({query})"
+            header_title = "⚡ Auto-Apply Execution Report"
+            if auto_apply_mode == "review":
+                mode_desc = "🛡️ Assisted Mode: ScoutAI filled out contact details, answers to screening questions, and attached your resume. Applications are staged in your browser for final review."
+            else:
+                mode_desc = "⚡ Full Auto Mode: ScoutAI directly submitted applications for high-matching positions."
+        else:
+            subject = f"⚡ ScoutAI Top 5 Job Matches: {query}"
+            header_title = "Top 5 Tailored Job Matches"
+            mode_desc = "Discovered & scored against your candidate profile."
+
+        # Sort all jobs by match score
+        sorted_jobs = sorted(jobs, key=lambda j: (j.match_score is not None, j.match_score or 0), reverse=True)
+        
+        # Build cards for applied jobs if applicable, else top 5 matches
+        displayed_jobs = applied_jobs if is_apply_mode else sorted_jobs[:5]
+
         job_cards_html = []
-        for idx, job in enumerate(top_5, 1):
+        for idx, job in enumerate(displayed_jobs, 1):
             exp_text = ""
             if job.experience:
                 exp_text = job.experience
@@ -97,7 +115,18 @@ class NotificationService:
                 </span>
                 """
 
+            status_badge = ""
+            if is_apply_mode:
+                if job.application_status == "applied":
+                    status_badge = '<span style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid #10b981; font-weight: 700; font-size: 12px; padding: 3px 8px; border-radius: 6px; margin-right: 6px;">✅ Applied / Submitted</span>'
+                elif job.application_status == "review_ready":
+                    status_badge = '<span style="background: rgba(168, 85, 247, 0.25); color: #d8b4fe; border: 1px solid #a855f7; font-weight: 700; font-size: 12px; padding: 3px 8px; border-radius: 6px; margin-right: 6px;">👁️ Review Ready in Browser</span>'
+                elif job.application_status == "failed":
+                    status_badge = '<span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; font-weight: 600; font-size: 12px; padding: 3px 8px; border-radius: 6px; margin-right: 6px;">⚠️ Manual Apply Needed</span>'
+
             badges_html = []
+            if status_badge:
+                badges_html.append(status_badge)
             if exp_text:
                 badges_html.append(f'<span style="background: #1e293b; color: #34d399; font-size: 12px; padding: 3px 8px; border-radius: 4px; margin-right: 6px;">⏱️ {exp_text}</span>')
             if job.location:
@@ -121,6 +150,10 @@ class NotificationService:
             if job.match_summary:
                 match_summary_html = f'<p style="margin: 8px 0; font-size: 12.5px; color: #cbd5e1; font-style: italic;">💡 {job.match_summary}</p>'
 
+            app_notes_html = ""
+            if job.application_notes:
+                app_notes_html = f'<div style="background: rgba(0,0,0,0.3); border-left: 3px solid #a855f7; padding: 6px 10px; margin: 8px 0; font-size: 12px; color: #e2e8f0;">📝 {job.application_notes}</div>'
+
             desc_snippet = (job.description[:220] + "...") if job.description else ""
 
             card = f"""
@@ -135,6 +168,7 @@ class NotificationService:
                 <div style="margin: 8px 0;">
                     {''.join(badges_html)}
                 </div>
+                {app_notes_html}
                 {match_summary_html}
                 <div style="margin: 8px 0;">
                     {''.join(skill_chips)}
@@ -142,7 +176,7 @@ class NotificationService:
                 {f'<p style="color: #94a3b8; font-size: 13px; line-height: 1.5; margin: 8px 0;">{desc_snippet}</p>' if desc_snippet else ''}
                 <div style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
                     <span style="color: #64748b; font-size: 12px;">Source: {job.source or "Direct Portal"}</span>
-                    <a href="{job.apply_url}" style="background: #10b981; color: #052216; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; display: inline-block;">View Job Posting →</a>
+                    <a href="{job.apply_url}" style="background: #10b981; color: #052216; text-decoration: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 13px; display: inline-block;">{'Confirm / Open Application →' if is_apply_mode else 'View Job Posting →'}</a>
                 </div>
             </div>
             """
@@ -160,6 +194,7 @@ class NotificationService:
                 .brand {{ display: inline-block; background: #10b981; color: #062417; font-weight: 800; padding: 4px 10px; border-radius: 8px; font-size: 16px; margin-bottom: 8px; }}
                 h1 {{ margin: 6px 0 2px; font-size: 22px; color: #ffffff; }}
                 .meta {{ color: #94a3b8; font-size: 13.5px; }}
+                .mode-notice {{ background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; padding: 10px 14px; margin-top: 10px; font-size: 12.5px; color: #d8b4fe; }}
                 .footer {{ text-align: center; color: #64748b; font-size: 12px; margin-top: 24px; border-top: 1px solid #27354f; padding-top: 16px; }}
             </style>
         </head>
@@ -167,10 +202,13 @@ class NotificationService:
             <div class="container">
                 <div class="header">
                     <div class="brand">⚡ ScoutAI</div>
-                    <h1>Top 5 Tailored Job Matches</h1>
+                    <h1>{header_title}</h1>
                     <div class="meta">
                         Search query: <strong>{query}</strong> &bull; Total Discovered: <strong>{total_discovered or len(jobs)}</strong>
                         {f'<br>Prepared for: <strong>{cand_name}</strong> {f"({cand_headline})" if cand_headline else ""}' if candidate_profile else ''}
+                    </div>
+                    <div class="mode-notice">
+                        {mode_desc}
                     </div>
                 </div>
 
@@ -188,14 +226,17 @@ class NotificationService:
 
         # Plain text fallback
         text_lines = [
-            f"⚡ ScoutAI Top 5 Job Matches for '{query}'",
+            f"⚡ ScoutAI {header_title} for '{query}'",
             f"Total jobs discovered: {total_discovered or len(jobs)}",
+            f"Mode: {mode_desc}",
             "-" * 50,
         ]
-        for idx, job in enumerate(top_5, 1):
+        for idx, job in enumerate(displayed_jobs, 1):
             score_str = f" [{job.match_score}% Match]" if job.match_score is not None else ""
-            text_lines.append(f"\n#{idx}. {job.title}{score_str}")
+            status_str = f" [{job.application_status.upper()}]" if is_apply_mode else ""
+            text_lines.append(f"\n#{idx}. {job.title}{score_str}{status_str}")
             text_lines.append(f"Company: {job.company or 'Direct Employer'}")
+            if is_apply_mode and job.application_notes: text_lines.append(f"Notes: {job.application_notes}")
             if job.location: text_lines.append(f"Location: {job.location}")
             if job.match_summary: text_lines.append(f"Summary: {job.match_summary}")
             text_lines.append(f"Apply Link: {job.apply_url}")
@@ -203,3 +244,22 @@ class NotificationService:
         text_content = "\n".join(text_lines)
 
         return NotificationService.send_email(recipient, subject, html, text_content)
+
+    @staticmethod
+    def send_top_matches(
+        recipient: str,
+        query: str,
+        jobs: List[Job],
+        candidate_profile: Optional[Dict[str, Any]] = None,
+        total_discovered: int = 0,
+        auto_apply_mode: str = "off",
+    ) -> bool:
+        """Alias for send_hunt_results."""
+        return NotificationService.send_hunt_results(
+            recipient=recipient,
+            query=query,
+            jobs=jobs,
+            candidate_profile=candidate_profile,
+            total_discovered=total_discovered,
+            auto_apply_mode=auto_apply_mode,
+        )

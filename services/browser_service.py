@@ -94,6 +94,7 @@ class BrowserService:
         filters = filters or {}
         role = filters.get("role", "").strip() or base_query
         company = filters.get("company", "").strip()
+        company_url = filters.get("company_url", "").strip()
         location = filters.get("location", "").strip()
         skills = filters.get("skills", "").strip()
         work_mode = filters.get("work_mode", "").strip()
@@ -115,7 +116,27 @@ class BrowserService:
 
         queries = []
 
-        if company:
+        if company_url:
+            from services.company_career_service import CompanyCareerService
+            info = CompanyCareerService.extract_company_info(company_url)
+            c_name = company or info.get("company_name", "")
+            domain = info.get("domain", "")
+            apex = info.get("apex_domain", "")
+
+            # 1. Direct career subdomains and paths
+            if apex:
+                queries.append(f"site:careers.{apex} {role_clean}".strip())
+                queries.append(f"site:jobs.{apex} {role_clean}".strip())
+                queries.append(f"site:{apex}/careers OR site:{apex}/jobs {role_clean}".strip())
+            elif domain:
+                queries.append(f"site:{domain} {role_clean} (careers OR jobs)".strip())
+            
+            # 2. Scoped ATS boards and enterprise career portals
+            if c_name:
+                queries.append(f"\"{c_name}\" \"{role_clean}\" site:careers.{apex or domain} OR site:jobs.{apex or domain} OR site:myworkdayjobs.com OR site:eightfold.ai OR site:greenhouse.io OR site:lever.co OR site:ashbyhq.com OR site:apply.workable.com".strip())
+                queries.append(f"\"{c_name}\" \"{role_clean}\" site:linkedin.com/jobs OR site:indeed.com OR site:naukri.com OR site:glassdoor.com {loc_str}".strip())
+                queries.append(f"\"{c_name}\" \"{role_clean}\" careers openings {loc_str}".strip())
+        elif company:
             queries.append(f"{company} {role_clean} jobs {loc_str}".strip())
             queries.append(f"{company} {role_clean} careers site:greenhouse.io OR site:lever.co OR site:ashbyhq.com OR site:myworkdayjobs.com".strip())
             queries.append(f"{company} {role_clean} site:linkedin.com/jobs OR site:naukri.com OR site:foundit.in OR site:indeed.com {loc_str}".strip())

@@ -46,14 +46,34 @@ class LinkExtractorService:
         re.compile(r"foundit\.in/job/[^/]+", re.I),
         re.compile(r"naukri\.com/job-listings-[^/]+", re.I),
 
-        # Company Direct Career Paths
+        # Company Direct Career Paths & Enterprise ATS (Phenom, Workday, Eightfold, Taleo)
         re.compile(r"/careers?/[^/]+/job/[^/]+", re.I),
         re.compile(r"/careers?/[^/]+/\d+", re.I),
         re.compile(r"/careers?/[^/]+/position/[^/]+", re.I),
         re.compile(r"/careers?/[^/]+/opening/[^/]+", re.I),
+        re.compile(r"/careers?/[^/]+/open-roles/[^/]+", re.I),
+        re.compile(r"/careers?/[0-9a-zA-Z_-]+-\d+", re.I),
+        re.compile(r"/careers?/[0-9a-zA-Z_-]+/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"/career-areas?/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"-opportunities-[0-9a-zA-Z_-]+", re.I),
         re.compile(r"/career\?gh_jid=\d+", re.I),
-        re.compile(r"/jobs/\d{5,}", re.I),
+        re.compile(r"/jobs/\d{4,}", re.I),
+        re.compile(r"/job/R-\d+", re.I),
+        re.compile(r"/job/REQ-\d+", re.I),
+        re.compile(r"/job/JR\d+", re.I),
         re.compile(r"/job/\d+", re.I),
+        re.compile(r"/job/[0-9a-zA-Z_-]+/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"/job/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"/jobs/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"/position/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"/positions/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"/opening/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"/openings/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"/role/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"/roles/[0-9a-zA-Z_-]+", re.I),
+        re.compile(r"eightfold\.ai/careers/job/\d+", re.I),
+        re.compile(r"[?&](?:job_id|gh_jid|jid|req_id|requisition_id)=\d+", re.I),
+        re.compile(r"/apply/[0-9a-zA-Z_-]+", re.I),
     ]
 
     EXCLUDED_DOMAINS = (

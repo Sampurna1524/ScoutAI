@@ -53,13 +53,47 @@ class JobAgent:
         try:
             session.append_event("search_start", f"Searching for: {query}")
             recency = session.filters.get("posted_within") if session.filters else None
+            company_url = session.filters.get("company_url", "").strip() if session.filters else ""
+            target_role = session.filters.get("role", "").strip() if session.filters else ""
+            if not target_role and query:
+                target_role = query
 
             with sync_playwright() as p:
                 context = BrowserService.launch_persistent(p, headless=False)
                 session.browser = None
                 session.context = context
 
-                # Execute multi-platform parallel discovery across all job portals and ATS sites
+                combined_results = []
+                seen_urls = set()
+
+                # 1. Direct Company Careers Portal Discovery (if company URL provided)
+                if company_url:
+                    from services.company_career_service import CompanyCareerService
+                    session.append_event(
+                        "company_portal_start",
+                        f"Connecting directly to company website: {company_url}",
+                        {"company_url": company_url, "target_role": target_role},
+                    )
+                    try:
+                        company_page = context.new_page()
+                        careers_url = CompanyCareerService.find_careers_url(company_page, company_url)
+                        direct_results = CompanyCareerService.search_and_extract_company_jobs(
+                            company_page,
+                            careers_url,
+                            target_role,
+                            session=session,
+                        )
+                        company_page.close()
+
+                        for dr in direct_results:
+                            norm = dr.url.split("#")[0]
+                            if norm not in seen_urls:
+                                seen_urls.add(norm)
+                                combined_results.append(dr)
+                    except Exception as ce:
+                        print(f"[Company Portal Warning] {ce}")
+
+                # 2. Multi-Platform & ATS Parallel Discovery
                 search_page = context.new_page()
                 search_results = BrowserService.search_multi_source(
                     search_page,
@@ -69,17 +103,36 @@ class JobAgent:
                 )
                 search_page.close()
 
+                for sr in search_results:
+                    norm = sr.url.split("#")[0]
+                    if norm not in seen_urls:
+                        seen_urls.add(norm)
+                        combined_results.append(sr)
+
                 # Prepopulate session.jobs immediately with all discovered results so the list is full
                 with session.lock:
-                    for res in search_results:
+                    for res in combined_results:
+                        c_name = ""
+                        if session.filters and session.filters.get("company"):
+                            c_name = session.filters["company"].strip()
+                        elif company_url:
+                            from services.company_career_service import CompanyCareerService
+                            c_name = CompanyCareerService.extract_company_info(company_url).get("company_name", "")
+
+                        initial_job = Job(
+                            title=res.title,
+                            company=c_name,
+                            apply_url=res.url,
+                            source=urlparse(res.url).netloc,
+                            status="success",
+                            description=f"Job posting from {urlparse(res.url).netloc}",
+                        )
+
+                        # Filter out marketing / corporate PR articles
+                        if not ExtractorService.is_valid_job_posting(initial_job, res.url):
+                            continue
+
                         if not any(j.apply_url == res.url for j in session.jobs):
-                            initial_job = Job(
-                                title=res.title,
-                                apply_url=res.url,
-                                source=urlparse(res.url).netloc,
-                                status="success",
-                                description=f"Job posting from {urlparse(res.url).netloc}",
-                            )
                             if session.candidate_profile:
                                 try:
                                     from services.profile_service import ProfileService, CandidateProfile
@@ -93,7 +146,7 @@ class JobAgent:
                         session.jobs.sort(key=lambda j: (j.match_score is not None, j.match_score or 0), reverse=True)
 
                 # Process and enrich top candidate job pages
-                for result in search_results:
+                for result in combined_results:
                     if session.unresolved_tasks():
                         break
                     JobAgent._drain_user_actions(session)
@@ -113,28 +166,55 @@ class JobAgent:
                 while session.unresolved_tasks():
                     JobAgent._drain_user_actions(session)
                     session.wake.wait(timeout=0.5)
-                    session.wake.clear()
+                # Auto-Apply execution if user opted-in (review or auto mode)
+                auto_apply_mode = session.filters.get("auto_apply_mode", "off") if session.filters else "off"
+                if auto_apply_mode in ("review", "auto") and session.candidate_profile:
+                    min_score = session.filters.get("min_match_score", 70) if session.filters else 70
+                    top_n = session.filters.get("auto_apply_top_n", 5) if session.filters else 5
+                    
+                    try:
+                        from services.auto_apply_service import AutoApplyService
+                        from services.profile_service import CandidateProfile
+                        cand = CandidateProfile(**session.candidate_profile)
+                        
+                        eligible_jobs = [j for j in session.jobs if (j.match_score or 0) >= min_score][:top_n]
+                        if eligible_jobs:
+                            session.append_event("auto_apply_start", f"Starting {auto_apply_mode} auto-apply for top {len(eligible_jobs)} matching jobs...")
+                            for ej in eligible_jobs:
+                                JobAgent._drain_user_actions(session)
+                                app_page = context.new_page()
+                                updated_job, notes = AutoApplyService.apply_to_job(app_page, ej, cand, mode=auto_apply_mode)
+                                session.append_event("job_application", f"Auto-Apply ({ej.title}): {notes}", {"job": ej.title, "status": updated_job.application_status})
+                                if auto_apply_mode == "auto":
+                                    try: app_page.close()
+                                    except Exception: pass
+                    except Exception as ae:
+                        print(f"[AutoApply Warning] {ae}")
 
                 with session.lock:
                     session.status = "completed"
                 session.append_event("search_completed", "Results are ready")
 
-                # Send top 5 matches via email if configured
+                # Send notification email if configured (applied jobs report if auto-apply chosen, or top 5 matches)
                 try:
                     from services.notification_service import NotificationService
                     recipient = (session.filters.get("notification_email") if session.filters else None) or NotificationService.get_default_recipient()
                     send_email_flag = session.filters.get("send_email", True) if session.filters else True
                     if send_email_flag and recipient and NotificationService.is_configured() and session.jobs:
-                        sorted_jobs = sorted(session.jobs, key=lambda j: (j.match_score is not None, j.match_score or 0), reverse=True)
-                        sent = NotificationService.send_top_matches(
+                        applied_jobs = [j for j in session.jobs if j.application_status in ("applied", "review_ready")]
+                        is_applied = auto_apply_mode in ("review", "auto") and bool(applied_jobs)
+                        
+                        sent = NotificationService.send_hunt_results(
                             recipient=recipient,
                             query=session.query,
-                            jobs=sorted_jobs,
+                            jobs=session.jobs,
                             candidate_profile=session.candidate_profile,
                             total_discovered=len(session.jobs),
+                            auto_apply_mode=auto_apply_mode,
                         )
                         if sent:
-                            session.append_event("email_sent", f"Top 5 matching jobs emailed to {recipient}", {"recipient": recipient})
+                            msg = f"Auto-apply report ({len(applied_jobs)} jobs) emailed to {recipient}" if is_applied else f"Top 5 matching jobs emailed to {recipient}"
+                            session.append_event("email_sent", msg, {"recipient": recipient, "is_auto_apply_report": is_applied})
                 except Exception as ne:
                     print(f"[JobAgent] Notification dispatch notice: {ne}")
 
@@ -149,6 +229,43 @@ class JobAgent:
                 session.status = "failed"
             session.append_event("search_failed", str(e))
             session.agent_finished = True
+
+    @staticmethod
+    def apply_to_single_job(session_id: str, job_url: str, mode: str = "review") -> Optional[Job]:
+        session = session_store.get(session_id)
+        if not session:
+            return None
+
+        target_job = None
+        for j in session.jobs:
+            if j.apply_url == job_url:
+                target_job = j
+                break
+        if not target_job:
+            return None
+
+        target_job.application_status = "applying"
+
+        def _worker():
+            try:
+                from services.auto_apply_service import AutoApplyService
+                from services.profile_service import CandidateProfile
+                cand = CandidateProfile(**session.candidate_profile) if session.candidate_profile else CandidateProfile()
+                
+                with sync_playwright() as p:
+                    context = BrowserService.launch_persistent(p, headless=False)
+                    page = context.new_page()
+                    updated, msg = AutoApplyService.apply_to_job(page, target_job, cand, mode=mode)
+                    session.append_event("job_application", f"{target_job.title}: {msg}", {"status": updated.application_status})
+                    if mode == "review":
+                        time.sleep(20)
+                    context.close()
+            except Exception as e:
+                target_job.application_status = "failed"
+                target_job.application_notes = str(e)
+
+        threading.Thread(target=_worker, daemon=True).start()
+        return target_job
 
     @staticmethod
     def _next_tab(session: ScoutSession) -> int:
@@ -291,6 +408,14 @@ class JobAgent:
                 fallback_title=fallback_title,
             )
 
+            # If company name is not found, fallback to filters or company_url
+            if not job.company and session.filters:
+                if session.filters.get("company"):
+                    job.company = session.filters["company"].strip()
+                elif session.filters.get("company_url"):
+                    from services.company_career_service import CompanyCareerService
+                    job.company = CompanyCareerService.extract_company_info(session.filters["company_url"]).get("company_name", "")
+
             # If candidate profile is attached, evaluate match
             if session.candidate_profile:
                 try:
@@ -299,6 +424,13 @@ class JobAgent:
                     job = ProfileService.evaluate_match(cand, job)
                 except Exception as pe:
                     print(f"[Match Score Warning] {pe}")
+
+            # Validate that extracted item is an actual job and not a marketing / corporate page
+            if not ExtractorService.is_valid_job_posting(job, url, page_text):
+                print(f"[Skip] Page is not a valid job listing: {job.title} ({url})")
+                with session.lock:
+                    session.jobs = [j for j in session.jobs if j.apply_url != url]
+                return
 
             score_str = f" (Match: {job.match_score}%)" if job.match_score is not None else ""
             print(f"[OK] Extracted ({len(session.jobs)}): {job.title}{score_str}")
