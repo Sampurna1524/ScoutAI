@@ -66,32 +66,34 @@ class JobAgent:
                 combined_results = []
                 seen_urls = set()
 
-                # 1. Direct Company Careers Portal Discovery (if company URL provided)
+                # 1. Direct Company Careers Portal Discovery (supports single or multi-company batch)
                 if company_url:
                     from services.company_career_service import CompanyCareerService
-                    session.append_event(
-                        "company_portal_start",
-                        f"Connecting directly to company website: {company_url}",
-                        {"company_url": company_url, "target_role": target_role},
-                    )
-                    try:
-                        company_page = context.new_page()
-                        careers_url = CompanyCareerService.find_careers_url(company_page, company_url)
-                        direct_results = CompanyCareerService.search_and_extract_company_jobs(
-                            company_page,
-                            careers_url,
-                            target_role,
-                            session=session,
+                    c_urls = [u.strip() for u in company_url.split(",") if u.strip()]
+                    for single_url in c_urls:
+                        session.append_event(
+                            "company_portal_start",
+                            f"Connecting directly to company website: {single_url}",
+                            {"company_url": single_url, "target_role": target_role},
                         )
-                        company_page.close()
+                        try:
+                            company_page = context.new_page()
+                            careers_url = CompanyCareerService.find_careers_url(company_page, single_url)
+                            direct_results = CompanyCareerService.search_and_extract_company_jobs(
+                                company_page,
+                                careers_url,
+                                target_role,
+                                session=session,
+                            )
+                            company_page.close()
 
-                        for dr in direct_results:
-                            norm = dr.url.split("#")[0]
-                            if norm not in seen_urls:
-                                seen_urls.add(norm)
-                                combined_results.append(dr)
-                    except Exception as ce:
-                        print(f"[Company Portal Warning] {ce}")
+                            for dr in direct_results:
+                                norm = dr.url.split("#")[0]
+                                if norm not in seen_urls:
+                                    seen_urls.add(norm)
+                                    combined_results.append(dr)
+                        except Exception as ce:
+                            print(f"[Company Portal Warning ({single_url})] {ce}")
 
                 # 2. Multi-Platform & ATS Parallel Discovery
                 search_page = context.new_page()

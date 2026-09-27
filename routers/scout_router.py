@@ -229,3 +229,108 @@ def apply_job_endpoint(session_id: str, body: SingleJobApplyBody):
         raise HTTPException(status_code=404, detail="Job not found in session")
 
     return {"status": "started", "job": job.model_dump(), "mode": body.mode}
+
+
+class GeneratePitchBody(BaseModel):
+    job_title: Optional[str] = ""
+    company: Optional[str] = ""
+    description: Optional[str] = ""
+    matched_skills: Optional[list] = []
+    missing_skills: Optional[list] = []
+    candidate_profile: Optional[Dict[str, Any]] = None
+    tone: Optional[str] = "confident"
+
+
+class InterviewPrepBody(BaseModel):
+    job_title: Optional[str] = ""
+    company: Optional[str] = ""
+    skills: Optional[list] = []
+    missing_skills: Optional[list] = []
+    candidate_profile: Optional[Dict[str, Any]] = None
+
+
+@router.post("/generate-pitch")
+def generate_pitch_endpoint(body: GeneratePitchBody):
+    from services.ai_tailor_service import AiTailorService
+    from models.job import Job
+    from services.profile_service import CandidateProfile
+
+    job = Job(
+        title=body.job_title or "",
+        company=body.company or "",
+        description=body.description or "",
+        matched_skills=body.matched_skills or [],
+        missing_skills=body.missing_skills or [],
+    )
+    cand = CandidateProfile(**body.candidate_profile) if body.candidate_profile else None
+    result = AiTailorService.generate_pitch_and_cover_letter(job, candidate=cand, tone=body.tone or "confident")
+    return result
+
+
+@router.post("/interview-prep")
+def interview_prep_endpoint(body: InterviewPrepBody):
+    from services.ai_tailor_service import AiTailorService
+    from models.job import Job
+    from services.profile_service import CandidateProfile
+
+    job = Job(
+        title=body.job_title or "",
+        company=body.company or "",
+        skills=body.skills or [],
+        missing_skills=body.missing_skills or [],
+    )
+    cand = CandidateProfile(**body.candidate_profile) if body.candidate_profile else None
+    questions = AiTailorService.generate_interview_prep(job, candidate=cand)
+    return {"questions": questions}
+
+
+@router.get("/{session_id}/market-insights")
+def market_insights_endpoint(session_id: str):
+    from services.ai_tailor_service import AiTailorService
+    session = session_store.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    insights = AiTailorService.compute_market_insights(session.jobs)
+    return insights
+
+
+@router.get("/{session_id}/export")
+def export_session_endpoint(session_id: str, format: str = "csv"):
+    import csv
+    import io
+    from fastapi.responses import Response
+
+    session = session_store.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if format.lower() == "json":
+        return session.snapshot()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Title", "Company", "Location", "Work Mode", "Experience", "Match Score", "Matched Skills", "Missing Skills", "Apply URL", "Source", "Application Status"])
+
+    for j in session.jobs:
+        writer.writerow([
+            j.title,
+            j.company,
+            j.location,
+            j.work_mode,
+            j.experience or (f"{j.experience_years} yrs" if j.experience_years is not None else ""),
+            f"{j.match_score}%" if j.match_score is not None else "",
+            ", ".join(j.matched_skills),
+            ", ".join(j.missing_skills),
+            j.apply_url,
+            j.source,
+            j.application_status
+        ])
+
+    csv_data = output.getvalue()
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=scout_hunt_{session_id[:8]}.csv"}
+    )
+
