@@ -1260,213 +1260,21 @@
         <span class="nav-status-pill"><span class="pulse-dot"></span> RADAR ACTIVE</span>
       </div>
       <div class="nav-links">
-        <span class="nav-link active" id="nav-home-btn">Overview</span>
-        <span class="nav-link" id="nav-studio-btn">Job Radar (Studio)</span>
-        <button class="nav-cta-btn" id="header-launch-btn">
-          <span>⚡</span> Launch Studio
-        </button>
+        <span class="nav-status-pill" style="border-color: rgba(6, 182, 212, 0.3); color: var(--cyan); background: rgba(6, 182, 212, 0.08); font-family: 'JetBrains Mono', monospace; font-size: 11.5px;">JOB HUNTING STUDIO</span>
       </div>
     </div>
   </nav>
 
   <!-- ==========================================================
-       VIEW 1: IMMERSIVE HOME / LANDING VIEW
+       HUNTING STUDIO / MAIN APP VIEW
        ========================================================== -->
-  <section class="view-section active" id="view-home">
-    <div class="home-wrapper">
-      <!-- Hero -->
-      <div class="hero-section">
-        <div class="hero-badge">
-          <span>🚀</span> Autonomous Individual Job Hunting Agent 2.0
-        </div>
-        <h1 class="hero-title">
-          Direct Company Portal &amp; <br />
-          <span class="glow-text">Neural Career Areas Radar</span>
-        </h1>
-        <p class="hero-lede">
-          Give ScoutAI any company link or desired role. Our autonomous Playwright agent navigates enterprise career portals, expands Career Areas, extracts exact postings, and evaluates deep neural skill match scoring against your profile.
-        </p>
-        <div class="hero-actions">
-          <button class="btn-hero-primary" id="hero-start-btn">
-            <span>⚡</span> Launch Autonomous Studio
-          </button>
-          <button class="btn-hero-secondary" id="hero-architecture-btn">
-            <span>👁️</span> Explore Intelligence Matrix
-          </button>
-        </div>
-      </div>
-
-      <!-- Stats HUD -->
-      <div class="stats-hud">
-        <div class="stat-card">
-          <div class="stat-number">100%</div>
-          <div class="stat-label">Direct Portal &amp; Career Areas Crawl</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">&lt; 2.4s</div>
-          <div class="stat-label">Neural Skill-Gap Analysis</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">15+</div>
-          <div class="stat-label">ATS &amp; Enterprise Formats (Phenom, Workday, Lever)</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">1-Click</div>
-          <div class="stat-label">Assisted &amp; Full Auto-Apply</div>
-        </div>
-      </div>
-
-      <!-- Live Interactive Terminal Simulation -->
-      <div class="terminal-container">
-        <div class="terminal-header">
-          <div class="terminal-dots">
-            <div class="dot dot-red"></div>
-            <div class="dot dot-yellow"></div>
-            <div class="dot dot-green"></div>
-          </div>
-          <div class="terminal-title">scout-agent --live-stream --portal-radar</div>
-          <div style="font-size: 11px; color: var(--accent); font-family: 'JetBrains Mono', monospace;">STATUS: SYNCHRONIZED</div>
-        </div>
-        <div class="terminal-body">
-          <div class="term-line">
-            <span class="term-prompt">$</span>
-            <span>scout-agent init --target-company <span class="term-cyan">"https://www.lilly.com"</span> --role <span class="term-cyan">"AI Engineer"</span></span>
-          </div>
-          <div class="term-line">
-            <span class="term-prompt">›</span>
-            <span>[Resolver] Resolved dedicated career portal &rarr; <span class="term-highlight">https://careers.lilly.com/us/en</span></span>
-          </div>
-          <div class="term-line">
-            <span class="term-prompt">›</span>
-            <span>[Crawler] Intercepted navigation header &rarr; Found <span class="term-purple">Career Areas &gt; Technology / Engineering</span></span>
-          </div>
-          <div class="term-line">
-            <span class="term-prompt">›</span>
-            <span>[Discovered] <span class="term-highlight">Senior Principal AI Platform Engineer</span> (careers.lilly.com/us/en/job/R-111793) <span class="term-badge">96% Neural Match</span></span>
-          </div>
-          <div class="term-line">
-            <span class="term-prompt">›</span>
-            <span>[Discovered] <span class="term-highlight">Agentic AI Data Engineer</span> (careers.lilly.com/us/en/job/R-106834) <span class="term-badge">92% Neural Match</span></span>
-          </div>
-          <div class="term-line">
-            <span class="term-prompt">›</span>
-            <span>[Ready] All authentic postings fetched and structured. Ready for assisted dispatch.</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bento Grid Section -->
-      <div class="bento-section-title" id="features-section">
-        <span class="section-tag">Neural Architecture</span>
-        <h2 class="section-h2">Engineered for Precision Job Hunting</h2>
-      </div>
-
-      <div class="bento-grid">
-        <!-- Card 1 -->
-        <div class="bento-card bento-8">
-          <div class="bento-icon">🏢</div>
-          <h3 class="bento-title">Direct Enterprise Portal &amp; Career Areas Crawler</h3>
-          <p class="bento-desc">
-            Unlike shallow scrapers that get lost on corporate homepages, ScoutAI automatically resolves enterprise subdomains (`careers.lilly.com`), expands "Career Areas" dropdowns (Technology, Engineering, R&amp;D), and performs in-portal searches to grab authentic open requisition IDs.
-          </p>
-          <div class="bento-taglist">
-            <span class="bento-tag">Phenom People</span>
-            <span class="bento-tag">Workday (wd5/wd1)</span>
-            <span class="bento-tag">Greenhouse</span>
-            <span class="bento-tag">Lever</span>
-            <span class="bento-tag">Ashby</span>
-            <span class="bento-tag">SmartRecruiters</span>
-          </div>
-        </div>
-
-        <!-- Card 2 -->
-        <div class="bento-card bento-4">
-          <div class="bento-icon">🎯</div>
-          <h3 class="bento-title">Neural Profile Matcher</h3>
-          <p class="bento-desc">
-            Upload your Resume PDF or LinkedIn text. ScoutAI scores each job posting with tailored percentage matches, highlight matched skills, and flags missing tech stacks.
-          </p>
-          <div class="bento-taglist">
-            <span class="bento-tag">PDF Text Extractor</span>
-            <span class="bento-tag">Skill Gap Breakdown</span>
-          </div>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="bento-card bento-6">
-          <div class="bento-icon">🛡️</div>
-          <h3 class="bento-title">Stealth Browser &amp; Human Sync</h3>
-          <p class="bento-desc">
-            Powered by persistent Chromium sessions. If an ATS asks for a CAPTCHA or Login, ScoutAI prompts you in real time so you can complete it in the browser while the agent continues crawling.
-          </p>
-          <div class="bento-taglist">
-            <span class="bento-tag">Human-in-the-Loop</span>
-            <span class="bento-tag">Anti-Bot Bypass</span>
-          </div>
-        </div>
-
-        <!-- Card 4 -->
-        <div class="bento-card bento-6">
-          <div class="bento-icon">⚡</div>
-          <h3 class="bento-title">One-Click Assisted Auto-Apply</h3>
-          <p class="bento-desc">
-            Choose between Assisted Review mode or full automated application. ScoutAI pre-fills contact details, experience, and authorization fields for rapid submission.
-          </p>
-          <div class="bento-taglist">
-            <span class="bento-tag">Easy Apply Autofill</span>
-            <span class="bento-tag">SMTP Email Alerts</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3-Step Pipeline -->
-      <div class="bento-section-title">
-        <span class="section-tag">Execution Workflow</span>
-        <h2 class="section-h2">How ScoutAI Operates</h2>
-      </div>
-
-      <div class="timeline-grid">
-        <div class="step-card">
-          <div class="step-number">PHASE 01 // INGESTION</div>
-          <h4 class="step-title">Specify Role or Company URL</h4>
-          <p class="step-desc">Enter your target role (e.g. AI Engineer) and optional company website. Upload your resume for automated match scoring.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-number">PHASE 02 // AGENTIC RADAR</div>
-          <h4 class="step-title">Autonomous Portal Crawl</h4>
-          <p class="step-desc">Playwright launches headful persistent browser sessions, probes career subdomains, traverses Career Areas, and extracts live job details.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-number">PHASE 03 // DISPATCH</div>
-          <h4 class="step-title">Neural Scoring &amp; Apply</h4>
-          <p class="step-desc">View tailored match score breakdowns, missing skills, and trigger 1-click assisted auto-apply with instant email reports.</p>
-        </div>
-      </div>
-
-      <!-- CTA Banner -->
-      <div class="cta-banner">
-        <h3>Ready to deploy your personal AI job hunting agent?</h3>
-        <p>Direct portal discovery, real-time Career Areas exploration, and tailored resume matching are ready for you.</p>
-        <button class="btn-hero-primary" id="cta-launch-btn">
-          <span>⚡</span> Launch ScoutAI Studio Now
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==========================================================
-       VIEW 2: HUNTING STUDIO / MAIN APP VIEW
-       ========================================================== -->
-  <section class="view-section" id="view-studio">
+  <section class="view-section active" id="view-studio">
     <div class="studio-wrapper">
       <div class="studio-header">
         <div class="studio-title-box">
           <h1>Autonomous Job Hunting Studio</h1>
           <p class="studio-subtitle">Enter any company website or job keywords to search career areas and evaluate neural match scoring.</p>
         </div>
-        <button type="button" class="secondary" id="back-to-home-btn" style="padding: 8px 14px; font-size: 13px;">
-          <span>←</span> Back to Overview
-        </button>
       </div>
 
       <!-- Resume / LinkedIn Profile Upload -->
@@ -1758,49 +1566,6 @@
         spotlight.style.top = e.clientY + "px";
       }
     });
-
-    // View Switching Logic (Home vs Studio)
-    const viewHome = document.getElementById("view-home");
-    const viewStudio = document.getElementById("view-studio");
-    const navHomeBtn = document.getElementById("nav-home-btn");
-    const navStudioBtn = document.getElementById("nav-studio-btn");
-    const headerLaunchBtn = document.getElementById("header-launch-btn");
-    const heroStartBtn = document.getElementById("hero-start-btn");
-    const ctaLaunchBtn = document.getElementById("cta-launch-btn");
-    const brandLogoBtn = document.getElementById("brand-logo-btn");
-    const backToHomeBtn = document.getElementById("back-to-home-btn");
-    const heroArchitectureBtn = document.getElementById("hero-architecture-btn");
-
-    function switchToStudio() {
-      viewHome.classList.remove("active");
-      viewStudio.classList.add("active");
-      navHomeBtn.classList.remove("active");
-      navStudioBtn.classList.add("active");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function switchToHome() {
-      viewStudio.classList.remove("active");
-      viewHome.classList.add("active");
-      navStudioBtn.classList.remove("active");
-      navHomeBtn.classList.add("active");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    if (navStudioBtn) navStudioBtn.addEventListener("click", switchToStudio);
-    if (headerLaunchBtn) headerLaunchBtn.addEventListener("click", switchToStudio);
-    if (heroStartBtn) heroStartBtn.addEventListener("click", switchToStudio);
-    if (ctaLaunchBtn) ctaLaunchBtn.addEventListener("click", switchToStudio);
-    if (navHomeBtn) navHomeBtn.addEventListener("click", switchToHome);
-    if (brandLogoBtn) brandLogoBtn.addEventListener("click", switchToHome);
-    if (backToHomeBtn) backToHomeBtn.addEventListener("click", switchToHome);
-
-    if (heroArchitectureBtn) {
-      heroArchitectureBtn.addEventListener("click", () => {
-        const feat = document.getElementById("features-section");
-        if (feat) feat.scrollIntoView({ behavior: "smooth" });
-      });
-    }
 
     // Studio DOM Elements
     const statusBox = document.getElementById("status-box");
@@ -2734,26 +2499,6 @@
     document.getElementById("tab-cover")?.addEventListener("click", () => renderModalTab("cover"));
     document.getElementById("tab-bullets")?.addEventListener("click", () => renderModalTab("bullets"));
     document.getElementById("tab-interview")?.addEventListener("click", () => renderModalTab("interview"));
-
-    function stopPolling() {
-      if (timer) clearInterval(timer);
-      timer = null;
-    }
-
-    function escapeHtml(value) {
-      if (value === null || value === undefined) return "";
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;");
-    }
-
-    // Initialize preview
-    updateQueryPreview();
-  </script>
-</body>
-</html>
 
     function stopPolling() {
       if (timer) clearInterval(timer);
