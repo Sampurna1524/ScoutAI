@@ -2,12 +2,11 @@ import sys
 import os
 from pathlib import Path
 
-# Add project root and backend to python path
 ROOT_DIR = Path(__file__).resolve().parent
 BACKEND_DIR = ROOT_DIR / "backend"
-sys.path.insert(0, str(ROOT_DIR))
-if BACKEND_DIR.exists():
-    sys.path.insert(0, str(BACKEND_DIR))
+
+# Ensure backend directory is first in sys.path
+sys.path.insert(0, str(BACKEND_DIR))
 
 if sys.platform == "win32":
     try:
@@ -22,4 +21,4 @@ if __name__ == "__main__":
     print("ScoutAI - Autonomous Job Hunting Agent & Portal Radar")
     print("Dashboard UI: http://127.0.0.1:8000/ui")
     print("=" * 60)
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True, app_dir=str(BACKEND_DIR))
