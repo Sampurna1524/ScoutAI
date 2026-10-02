@@ -1,0 +1,32 @@
+# Environment variables & secrets
+.env
+*.env
+.env.*
+backend/.env
+backend/*.env
+
+# Python cache & build
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Browser profiles & session state
+.scout_chrome_profile/
+.scout_chrome_test_profile/
+.playwright/
+*.log
+
+# OS & IDE metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

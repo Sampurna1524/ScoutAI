@@ -19,10 +19,10 @@ app.add_middleware(
 app.include_router(search_router)
 app.include_router(scout_router)
 
-# Look for frontend directory in current or parent folder
+# Look for frontend directory in parent or current folder
 FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
 if not FRONTEND_DIR.exists():
-    FRONTEND_DIR = Path(__file__).resolve().parent / "backend" / "frontend"
+    FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
 if FRONTEND_DIR.exists():
     app.mount("/ui", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
