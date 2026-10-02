@@ -46,24 +46,44 @@ Return ONLY valid JSON with keys: "linkedin_outreach", "cover_letter", "resume_b
             api_key = os.getenv("GEMINI_API_KEY")
             if api_key:
                 client = genai.Client(api_key=api_key)
-                model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+                model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
                 response = client.models.generate_content(
                     model=model,
                     contents=prompt,
                 )
                 txt = response.text.strip()
                 import json
-                # Strip markdown fences if present
                 clean_json = re.sub(r"^```json\s*", "", txt, flags=re.MULTILINE)
                 clean_json = re.sub(r"```\s*$", "", clean_json, flags=re.MULTILINE).strip()
                 parsed = json.loads(clean_json)
                 return {
                     "linkedin_outreach": parsed.get("linkedin_outreach", ""),
                     "cover_letter": parsed.get("cover_letter", ""),
-                    "resume_bullet_points": "\n".join(f"• {b}" for b in parsed.get("resume_bullet_points", []))
+                    "resume_bullet_points": "\n".join(f"• {b}" if not str(b).startswith("•") else str(b) for b in parsed.get("resume_bullet_points", []))
                 }
-        except Exception as e:
-            print(f"[AiTailorService] LLM generation notice ({e}), using high-yield heuristic generator.")
+        except Exception as ge:
+            print(f"[AiTailorService] Gemini notice ({ge}), attempting Groq fallback...")
+            try:
+                from groq import Groq
+                groq_key = os.getenv("GROQ_API_KEY")
+                if groq_key:
+                    groq_client = Groq(api_key=groq_key)
+                    groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+                    resp = groq_client.chat.completions.create(
+                        model=groq_model,
+                        temperature=0.2,
+                        response_format={"type": "json_object"},
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    import json
+                    parsed = json.loads(resp.choices[0].message.content)
+                    return {
+                        "linkedin_outreach": parsed.get("linkedin_outreach", ""),
+                        "cover_letter": parsed.get("cover_letter", ""),
+                        "resume_bullet_points": "\n".join(f"• {b}" if not str(b).startswith("•") else str(b) for b in parsed.get("resume_bullet_points", []))
+                    }
+            except Exception as gre:
+                print(f"[AiTailorService] Groq notice ({gre}), using high-yield heuristic generator.")
 
         # High-yield heuristic template generator
         outreach = (
@@ -105,6 +125,59 @@ Return ONLY valid JSON with keys: "linkedin_outreach", "cover_letter", "resume_b
         company = job.company or "the company"
         skills = job.skills[:5] if job.skills else ["System Design", "Python", "Architecture", "Data Pipelines"]
 
+        prompt = f"""
+You are an expert technical interviewer and executive engineering manager.
+Job Title: {job_title}
+Company: {company}
+Key Skills: {', '.join(skills)}
+Job Description: {(job.description or '')[:1000]}
+
+Generate 5 high-impact interview preparation questions tailored to this position.
+Return ONLY a valid JSON object with key "questions", containing an array of objects:
+[
+  {{
+    "topic": "Topic Category (e.g. Technical Deep-Dive: Python)",
+    "question": "Realistic technical or behavioral question asked at {company}",
+    "talking_points": "Concise key points and strategy for how the candidate should structure their answer"
+  }}
+]
+"""
+        # Try Gemini or Groq
+        try:
+            from google import genai
+            api_key = os.getenv("GEMINI_API_KEY")
+            if api_key:
+                client = genai.Client(api_key=api_key)
+                model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+                response = client.models.generate_content(model=model, contents=prompt)
+                import json
+                clean = re.sub(r"^```json\s*", "", response.text.strip(), flags=re.MULTILINE)
+                clean = re.sub(r"```\s*$", "", clean, flags=re.MULTILINE).strip()
+                parsed = json.loads(clean)
+                if isinstance(parsed, dict) and "questions" in parsed:
+                    return parsed["questions"]
+                elif isinstance(parsed, list):
+                    return parsed
+        except Exception as ge:
+            try:
+                from groq import Groq
+                groq_key = os.getenv("GROQ_API_KEY")
+                if groq_key:
+                    groq_client = Groq(api_key=groq_key)
+                    resp = groq_client.chat.completions.create(
+                        model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                        temperature=0.2,
+                        response_format={"type": "json_object"},
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    import json
+                    parsed = json.loads(resp.choices[0].message.content)
+                    if isinstance(parsed, dict) and "questions" in parsed:
+                        return parsed["questions"]
+            except Exception:
+                pass
+
+        # High-yield structured fallback
         prep_items = [
             {
                 "topic": f"Technical Deep-Dive: {skills[0] if skills else 'Core Tech'}",

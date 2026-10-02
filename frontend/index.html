@@ -2387,7 +2387,7 @@
           const idx = parseInt(e.currentTarget.dataset.index);
           const targetJob = cachedJobs[idx];
           if (!targetJob) return;
-          openAiPitchModal(targetJob);
+          openTailorModal(targetJob, "inmail");
         });
       });
 
@@ -2397,7 +2397,7 @@
           const idx = parseInt(e.currentTarget.dataset.index);
           const targetJob = cachedJobs[idx];
           if (!targetJob) return;
-          openInterviewPrepModal(targetJob);
+          openTailorModal(targetJob, "interview");
         });
       });
 
@@ -2553,26 +2553,26 @@
       `;
     }
 
-    // Modal Architecture for AI Career Co-Pilot
+    // Modal Architecture for AI Career Co-Pilot & Interview Cheat Sheet
     const modalHtml = `
-      <div id="ai-copilot-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 999; align-items: center; justify-content: center; padding: 20px;">
-        <div style="background: var(--panel); border: 1px solid var(--line-focus); border-radius: 16px; max-width: 680px; width: 100%; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.6);">
+      <div id="ai-copilot-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: var(--panel); border: 1px solid var(--line-focus); border-radius: 16px; max-width: 720px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.7);">
           <div style="padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; background: #0c1322;">
             <div style="font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;" id="modal-title">
               <span>✨</span> AI Career Outreach &amp; Tailoring
             </div>
-            <button type="button" id="modal-close-btn" style="background: transparent; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 4px;">&times;</button>
+            <button type="button" id="modal-close-btn" style="background: transparent; border: none; color: var(--muted); font-size: 24px; cursor: pointer; padding: 0 4px; line-height: 1;">&times;</button>
           </div>
-          <div style="display: flex; gap: 8px; padding: 12px 20px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--line); overflow-x: auto;" id="modal-tabs">
+          <div style="display: flex; gap: 8px; padding: 12px 20px; background: rgba(0,0,0,0.25); border-bottom: 1px solid var(--line); overflow-x: auto;" id="modal-tabs">
             <button type="button" class="chip-btn active" id="tab-inmail">💬 Cold LinkedIn InMail</button>
             <button type="button" class="chip-btn" id="tab-cover">📄 Tailored Cover Letter</button>
             <button type="button" class="chip-btn" id="tab-bullets">🎯 Resume Bullets</button>
             <button type="button" class="chip-btn" id="tab-interview">🧠 Interview Questions</button>
           </div>
           <div style="padding: 20px; flex: 1; overflow-y: auto; font-size: 13.5px; line-height: 1.6;" id="modal-body">
-            <div style="text-align: center; padding: 40px 0; color: var(--muted);" id="modal-loader">
+            <div style="text-align: center; padding: 48px 0; color: var(--muted);" id="modal-loader">
               <div class="spinner" style="margin: 0 auto 12px;"></div>
-              Generating neural pitch tailored to job requirements…
+              Generating neural pitch &amp; interview cheat sheet tailored to this job…
             </div>
             <div id="modal-content" style="display: none;"></div>
           </div>
@@ -2596,112 +2596,164 @@
     const modalLoader = document.getElementById("modal-loader");
     const modalContent = document.getElementById("modal-content");
 
-    let currentPitchData = null;
-    let currentActiveTab = "inmail";
+    let currentJobTailor = {
+      job: null,
+      pitchData: null,
+      prepQuestions: null,
+      activeTab: "inmail"
+    };
 
     modalCloseBtn.addEventListener("click", () => { copilotModal.style.display = "none"; });
     modalDoneBtn.addEventListener("click", () => { copilotModal.style.display = "none"; });
 
     modalCopyBtn.addEventListener("click", () => {
+      let textToCopy = "";
       const textarea = modalContent.querySelector("textarea");
       if (textarea) {
-        navigator.clipboard.writeText(textarea.value);
+        textToCopy = textarea.value;
+      } else if (currentJobTailor.activeTab === "interview" && currentJobTailor.prepQuestions) {
+        textToCopy = currentJobTailor.prepQuestions.map((q, idx) => 
+          `# ${idx + 1}. ${q.topic}\nQ: ${q.question}\nStrategy: ${q.talking_points}\n`
+        ).join("\n");
+      }
+
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy);
+        const originalText = modalCopyBtn.textContent;
         modalCopyBtn.textContent = "✅ Copied!";
-        setTimeout(() => { modalCopyBtn.textContent = "📋 Copy Content"; }, 2000);
+        setTimeout(() => { modalCopyBtn.textContent = originalText; }, 2000);
       }
     });
 
-    async function openAiPitchModal(job) {
+    async function openTailorModal(job, initialTab = "inmail") {
+      currentJobTailor.job = job;
+      currentJobTailor.activeTab = initialTab;
+      
       copilotModal.style.display = "flex";
-      modalTitle.innerHTML = `<span>✨</span> AI Tailoring: ${escapeHtml(job.title)} @ ${escapeHtml(job.company || 'Company')}`;
+      modalTitle.innerHTML = `<span>${initialTab === 'interview' ? '🧠' : '✨'}</span> ${initialTab === 'interview' ? 'Interview Cheat Sheet' : 'AI Career Pitch'}: ${escapeHtml(job.title)} @ ${escapeHtml(job.company || 'Verified Employer')}`;
       modalLoader.style.display = "block";
       modalContent.style.display = "none";
 
+      // Set active tab styling immediately
+      document.querySelectorAll("#modal-tabs .chip-btn").forEach(b => b.classList.remove("active"));
+      const activeBtn = document.getElementById("tab-" + initialTab);
+      if (activeBtn) activeBtn.classList.add("active");
+
       try {
-        const res = await fetch("/scout/generate-pitch", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            job_title: job.title,
-            company: job.company,
-            description: job.description,
-            matched_skills: job.matched_skills,
-            missing_skills: job.missing_skills,
-            candidate_profile: loadedCandidateProfile
-          })
-        });
-        currentPitchData = await res.json();
+        // Fetch pitch & cover letter, and interview prep in parallel
+        const [pitchRes, prepRes] = await Promise.allSettled([
+          fetch("/scout/generate-pitch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              job_title: job.title,
+              company: job.company,
+              description: job.description,
+              matched_skills: job.matched_skills,
+              missing_skills: job.missing_skills,
+              candidate_profile: loadedCandidateProfile
+            })
+          }).then(r => r.json()),
+
+          fetch("/scout/interview-prep", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              job_title: job.title,
+              company: job.company,
+              skills: job.skills,
+              missing_skills: job.missing_skills,
+              candidate_profile: loadedCandidateProfile
+            })
+          }).then(r => r.json())
+        ]);
+
+        currentJobTailor.pitchData = pitchRes.status === "fulfilled" ? pitchRes.value : null;
+        currentJobTailor.prepQuestions = (prepRes.status === "fulfilled" && prepRes.value?.questions) 
+          ? prepRes.value.questions 
+          : [];
+
         modalLoader.style.display = "none";
         modalContent.style.display = "block";
-        switchPitchTab("inmail");
+        renderModalTab(initialTab);
       } catch (err) {
-        modalLoader.textContent = "Error generating pitch: " + err.message;
+        modalLoader.innerHTML = `<span style="color: var(--danger);">Error loading tailored intelligence: ${escapeHtml(err.message)}</span>`;
       }
     }
 
-    async function openInterviewPrepModal(job) {
-      copilotModal.style.display = "flex";
-      modalTitle.innerHTML = `<span>🧠</span> Interview Cheat Sheet: ${escapeHtml(job.title)}`;
-      modalLoader.style.display = "block";
-      modalContent.style.display = "none";
-
-      try {
-        const res = await fetch("/scout/interview-prep", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            job_title: job.title,
-            company: job.company,
-            skills: job.skills,
-            missing_skills: job.missing_skills,
-            candidate_profile: loadedCandidateProfile
-          })
-        });
-        const data = await res.json();
-        modalLoader.style.display = "none";
-        modalContent.style.display = "block";
-
-        const questionsHtml = (data.questions || []).map((q, idx) => `
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-            <div style="font-size: 12px; color: var(--cyan); font-weight: 700; margin-bottom: 4px;">#${idx+1} ${escapeHtml(q.topic)}</div>
-            <div style="font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 6px;">${escapeHtml(q.question)}</div>
-            <div style="font-size: 12.5px; color: #94a3b8;">💡 <em>Strategy:</em> ${escapeHtml(q.talking_points)}</div>
-          </div>
-        `).join("");
-
-        modalContent.innerHTML = `
-          <div style="margin-bottom: 12px; font-size: 13px; color: var(--accent-light);">Predicted Technical &amp; System Design Focus Areas:</div>
-          ${questionsHtml}
-        `;
-      } catch (err) {
-        modalLoader.textContent = "Error generating questions: " + err.message;
-      }
-    }
-
-    function switchPitchTab(tabKey) {
-      currentActiveTab = tabKey;
+    function renderModalTab(tabKey) {
+      currentJobTailor.activeTab = tabKey;
       document.querySelectorAll("#modal-tabs .chip-btn").forEach(b => b.classList.remove("active"));
       const activeBtn = document.getElementById("tab-" + tabKey);
       if (activeBtn) activeBtn.classList.add("active");
 
-      let text = "";
-      if (tabKey === "inmail") text = currentPitchData?.linkedin_outreach || "";
-      else if (tabKey === "cover") text = currentPitchData?.cover_letter || "";
-      else if (tabKey === "bullets") text = currentPitchData?.resume_bullet_points || "";
-      else if (tabKey === "interview") {
-        modalContent.innerHTML = `<div style="color: var(--muted);">Click 'Interview Cheat Sheet' on the job card for full Q&A matrix.</div>`;
+      const pitch = currentJobTailor.pitchData || {};
+      const questions = currentJobTailor.prepQuestions || [];
+
+      if (tabKey === "interview") {
+        if (!questions.length) {
+          modalContent.innerHTML = `<div style="text-align: center; color: var(--muted); padding: 30px;">No interview questions generated.</div>`;
+          return;
+        }
+
+        const questionsHtml = questions.map((q, idx) => `
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+            <div style="font-size: 11.5px; color: var(--cyan); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;">#${idx+1} ${escapeHtml(q.topic)}</div>
+            <div style="font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 8px;">${escapeHtml(q.question)}</div>
+            <div style="font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent);">
+              💡 <strong style="color: var(--accent-light);">Winning Strategy:</strong> ${escapeHtml(q.talking_points)}
+            </div>
+          </div>
+        `).join("");
+
+        modalContent.innerHTML = `
+          <div style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; color: var(--accent-light); font-weight: 700;">🎯 Predicted Technical &amp; System Design Focus Areas:</span>
+            <span style="font-size: 12px; color: var(--muted);">${questions.length} Questions Prepared</span>
+          </div>
+          ${questionsHtml}
+        `;
         return;
       }
 
+      let text = "";
+      if (tabKey === "inmail") {
+        text = pitch.linkedin_outreach || "Generating LinkedIn InMail...";
+      } else if (tabKey === "cover") {
+        text = pitch.cover_letter || "Generating Cover Letter...";
+      } else if (tabKey === "bullets") {
+        text = pitch.resume_bullet_points || "Generating Resume Bullets...";
+      }
+
       modalContent.innerHTML = `
-        <textarea style="width: 100%; height: 260px; background: rgba(0,0,0,0.25); border: 1px solid var(--line); border-radius: 8px; padding: 12px; color: #f1f5f9; font-family: inherit; font-size: 13.5px; line-height: 1.6; resize: vertical;">${escapeHtml(text)}</textarea>
+        <textarea style="width: 100%; height: 280px; background: rgba(0,0,0,0.25); border: 1px solid var(--line); border-radius: 8px; padding: 14px; color: #f1f5f9; font-family: inherit; font-size: 13.5px; line-height: 1.6; resize: vertical; outline: none; border-color: var(--line-focus);">${escapeHtml(text)}</textarea>
       `;
     }
 
-    document.getElementById("tab-inmail")?.addEventListener("click", () => switchPitchTab("inmail"));
-    document.getElementById("tab-cover")?.addEventListener("click", () => switchPitchTab("cover"));
-    document.getElementById("tab-bullets")?.addEventListener("click", () => switchPitchTab("bullets"));
-    document.getElementById("tab-interview")?.addEventListener("click", () => switchPitchTab("interview"));
+    document.getElementById("tab-inmail")?.addEventListener("click", () => renderModalTab("inmail"));
+    document.getElementById("tab-cover")?.addEventListener("click", () => renderModalTab("cover"));
+    document.getElementById("tab-bullets")?.addEventListener("click", () => renderModalTab("bullets"));
+    document.getElementById("tab-interview")?.addEventListener("click", () => renderModalTab("interview"));
+
+    function stopPolling() {
+      if (timer) clearInterval(timer);
+      timer = null;
+    }
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return "";
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    // Initialize preview
+    updateQueryPreview();
+  </script>
+</body>
+</html>
 
     function stopPolling() {
       if (timer) clearInterval(timer);
